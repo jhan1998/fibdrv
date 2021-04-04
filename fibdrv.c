@@ -198,12 +198,12 @@ xs *xs_new(xs *x, const void *p)
 //     return x;
 // }
 
-static inline xs *xs_free(xs *x)
-{
-    if (xs_is_ptr(x) && xs_dec_refcnt(x) <= 0)
-        kfree(x->ptr);
-    return xs_newempty(x);
-}
+// static inline xs *xs_free(xs *x)
+// {
+//     if (xs_is_ptr(x) && xs_dec_refcnt(x) <= 0)
+//         kfree(x->ptr);
+//     return xs_newempty(x);
+// }
 
 static inline void __swap(void *a, void *b)
 {
@@ -274,7 +274,7 @@ static void string_number_add(xs *a, xs *b, xs *out)
     reverse_str(data_b, size_b);
 
     if (out) {
-        // BUG_ON(sizeof(buf) <= MAX_STR_LEN);
+        BUG_ON(sizeof(buf) >= MAX_STR_LEN);
         *out = *xs_new(&xs_literal_empty(), buf);
     }
 }
