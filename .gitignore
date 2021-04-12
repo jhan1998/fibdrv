@@ -29,3 +29,8 @@ dkms.conf
 # test-oriented
 client
 out
+client_plot
+
+# gnuplot input and results
+*.png
+*.txt

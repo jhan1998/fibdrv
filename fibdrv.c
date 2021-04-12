@@ -1,9 +1,11 @@
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/fs.h>
+#include <linux/hrtimer.h>
 #include <linux/init.h>
 #include <linux/kdev_t.h>
 #include <linux/kernel.h>
+#include <linux/ktime.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/slab.h>
@@ -298,20 +300,48 @@ static xs fib_sequence_str(long long k)
     return f[k];
 }
 
-// static long long fib_sequence(long long k)
-// {
-//     /* FIXME: use clz/ctz and fast algorithms to speed up */
-//     long long f[k + 2];
+static long long fib_sequence(long long k)
+{
+    /* FIXME: use clz/ctz and fast algorithms to speed up */
+    long long f[k + 2];
 
-//     f[0] = 0;
-//     f[1] = 1;
+    f[0] = 0;
+    f[1] = 1;
 
-//     for (int i = 2; i <= k; i++) {
-//         f[i] = f[i - 1] + f[i - 2];
-//     }
+    for (int i = 2; i <= k; i++) {
+        f[i] = f[i - 1] + f[i - 2];
+    }
 
-//     return f[k];
-// }
+    return f[k];
+}
+
+static long long fib_fast_double(long long k)
+{
+    /* FIXME: use clz/ctz and fast algorithms to speed up */
+    if (k < 2) {
+        return k;
+    }
+
+    long long f[2];
+
+    f[0] = 0;
+    f[1] = 1;
+
+    for (unsigned int i = 1U << 31; i; i >>= 1) {
+        long long k1 = f[0] * (f[1] * 2 - f[0]);
+        long long k2 = f[0] * f[0] + f[1] * f[1];
+
+        if (k & i) {
+            f[0] = k2;
+            f[1] = k2 + k1;
+        } else {
+            f[0] = k1;
+            f[1] = k2;
+        }
+    }
+
+    return f[0];
+}
 
 static int fib_open(struct inode *inode, struct file *file)
 {
@@ -336,7 +366,6 @@ static ssize_t fib_read(struct file *file,
 {
     long long int k = *offset;
     xs fib = fib_sequence_str(k);
-    printk("%lld %s\n", *offset, xs_data(&fib));
     copy_to_user(buf, xs_data(&fib), strlen(xs_data(&fib)) + 1);
     return 0;
 }
@@ -347,7 +376,22 @@ static ssize_t fib_write(struct file *file,
                          size_t size,
                          loff_t *offset)
 {
-    return 1;
+    ktime_t kt;
+    switch (size) {
+    case 0:
+        kt = ktime_get();
+        fib_sequence(*offset);
+        kt = ktime_sub(ktime_get(), kt);
+        break;
+    case 1:
+        kt = ktime_get();
+        fib_fast_double(*offset);
+        kt = ktime_sub(ktime_get(), kt);
+        break;
+    default:
+        return 1;
+    }
+    return (ssize_t) ktime_to_ns(kt);
 }
 
 static loff_t fib_device_lseek(struct file *file, loff_t offset, int orig)

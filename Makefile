@@ -9,7 +9,7 @@ PWD := $(shell pwd)
 
 GIT_HOOKS := .git/hooks/applied
 
-all: $(GIT_HOOKS) client
+all: $(GIT_HOOKS) client client_plot
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 $(GIT_HOOKS):
@@ -17,8 +17,9 @@ $(GIT_HOOKS):
 	@echo
 
 clean:
+	$(MAKE) unload
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	$(RM) client out
+	$(RM) client out client_plot
 load:
 	sudo insmod $(TARGET_MODULE).ko
 unload:
@@ -26,6 +27,12 @@ unload:
 
 client: client.c
 	$(CC) -o $@ $^
+
+client_plot: client_plot.c
+	$(CC) -o $@ $^ -O0
+
+plot: IRQ.sh
+	@bash IRQ.sh
 
 PRINTF = env printf
 PASS_COLOR = \e[32;01m
