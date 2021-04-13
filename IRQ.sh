@@ -9,12 +9,6 @@ sudo bash -c "echo 0 > /proc/sys/kernel/randomize_va_space"
 sudo bash -c "echo performance > /sys/devices/system/cpu/cpu$CPUID/cpufreq/scaling_governor"
 sudo bash -c "echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo"
 
-make unload
-make load
-rm -f plot.txt
-sudo taskset -c 7 ./client_plot > plot.txt
-gnuplot before.gp
-
 itr=0
 for file in `find /proc/irq -name "smp_affinity"`
 do
@@ -27,6 +21,8 @@ do
 done
 sudo bash -c "echo 7f > /proc/irq/default_smp_affinity"
 
+make unload
+make load
 rm -f plot.txt
 sudo taskset -c 7 ./client_plot > plot.txt
 gnuplot after.gp

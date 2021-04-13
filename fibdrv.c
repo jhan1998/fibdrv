@@ -388,6 +388,8 @@ static ssize_t fib_write(struct file *file,
         fib_fast_double(*offset);
         kt = ktime_sub(ktime_get(), kt);
         break;
+    case 2:
+        return (ssize_t) ktime_to_ns(ktime_get());
     default:
         return 1;
     }
